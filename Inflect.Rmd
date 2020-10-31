@@ -182,13 +182,6 @@ r2 <- 1 - (ssResid/ssTot)
 DataParameters[n,6]<-r2
 
 
-#if(CurveFit$par[1]>(-1.5) & CurveFit$par[1]<(-0.01)){
-#df2 <- data.frame(Temperature, NormBothCorrect[n])
-#CurveFitBIC <- nls(NormBothCorrectVal ~ I(c2+((d2-c2)/(1+exp(-a2*(Temperature-b2))))), data = df2,       start=list(a2=CurveFit$par[1],b2=CurveFit$par[2],c2=CurveFit$par[3],d2=CurveFit$par[4]),control=nls.control(maxiter =10000, tol = 1e-05, minFactor = 1e-3,printEval = FALSE, warnOnly = TRUE))
-#DataParameters[n,8]<-BIC(CurveFitBIC)
-#} else {
-#}
-
 n=n+1
  if (n > TotalRowsPer){
     break
