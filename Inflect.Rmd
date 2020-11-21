@@ -5,12 +5,20 @@ editor_options:
   chunk_output_type: inline
 ---
 ```{r}
-install.packages('readxl')
-library(readxl)
-install.packages('writexl')
-library(writexl)
-install.packages('optimr')
-library(optimr)
+	#install.packages('readxl')
+	library(readxl)
+	#install.packages('writexl')
+	library(writexl)
+	#install.packages('optimr')
+	library(optimr)
+	#install.packages('data.table')
+	library(data.table)
+	#install.packages('plotrix')
+	library(plotrix)
+	#install.packages('ggplot2')
+	library(ggplot2)
+  #install.packages('plotly')
+  library(plotly)
 ```
 
 
@@ -123,9 +131,7 @@ MutNormBothCorrect<-FPLFit_Correction(ConditionMedian,Data_Condition_Norm_Omit,"
 ```{r}
 
 #This chunk calculates the 4 parameter logistic variables for each of the proteins from both Control and Condition conditions.  This calculation is done only on proteins that are present in both data sets.
-#Data_Norm_Omit<-Data_Condition_Norm_Omit
-#NormBothCorrect<-MutNormBothCorrect
-#Condition<-"Condition"
+
 
 Data_Norm_Omit<-Data_Control_Norm_Omit
 NormBothCorrect<-ControlNormBothCorrect
@@ -198,7 +204,7 @@ DataParametersCondition<-FPLFit(Data_Condition_Norm_Omit,MutNormBothCorrect,"Mut
 
 ```{r}
 
-#This chunk isolates proteins that have a Rsquare of a certain value and also calculates other statistiscs from the results including the sum of square error, AIC and BIC
+#This chunk isolates proteins that have a Rsquare of a certain value 
 
 DataParametersControlResults <- data.frame(Proteins_Control_Norm_Omit, DataParametersControl, ControlNormBothCorrect)
 DataParametersConditionResults <- data.frame(Proteins_Condition_Norm_Omit, DataParametersCondition, MutNormBothCorrect)
