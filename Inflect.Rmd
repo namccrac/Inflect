@@ -27,7 +27,7 @@ library(plotly)
 #This section contains all of the variables that need to be customized for the analysis
 
 #This is the location of the directory where the melt curves will be saved.  The source files need to be saved as Control.xlsx and Condition.xlsx.  Each of the two files need to have a format where the first column contains the Accession numbers of the proteins while the remaining columns are the abundance levels at each temperature.  There should be a total number of columns (after the Accession number) that corresponds with the number of temperatures entered below.  
-directory<-"/Users/namccrac/IBMG/Mosley Lab/TPP Analysis Project/Program Development"
+directory<-"Path Name"
 dir.create(paste(directory,"Curves",sep="/"))
 dir.create(paste(directory,"SigCurves",sep="/"))
 SourcePath = directory
