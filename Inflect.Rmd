@@ -1,32 +1,33 @@
 ---
 title: "Inflect TPP Curve Fitting Program"
-output: html_notebook
-editor_options: 
-  chunk_output_type: inline
+output:html_notebook
+editor_options: chunk_output_type: inline
 ---
 ```{r}
-	#install.packages('readxl')
-	library(readxl)
-	#install.packages('writexl')
-	library(writexl)
-	#install.packages('optimr')
-	library(optimr)
-	#install.packages('data.table')
-	library(data.table)
-	#install.packages('plotrix')
-	library(plotrix)
-	#install.packages('ggplot2')
-	library(ggplot2)
-  #install.packages('plotly')
-  library(plotly)
+#install.packages('readxl')
+library(readxl)
+#install.packages('writexl')
+library(writexl)
+#install.packages('optimr')
+library(optimr)
+#install.packages('data.table')
+library(data.table)
+#install.packages('plotrix')
+library(plotrix)
+#install.packages('ggplot2')
+library(ggplot2)
+#install.packages('plotly')
+library(plotly)
 ```
+	
 
+	
 
 ```{r}
 #This section contains all of the variables that need to be customized for the analysis
 
 #This is the location of the directory where the melt curves will be saved.  The source files need to be saved as Control.xlsx and Condition.xlsx.  Each of the two files need to have a format where the first column contains the Accession numbers of the proteins while the remaining columns are the abundance levels at each temperature.  There should be a total number of columns (after the Accession number) that corresponds with the number of temperatures entered below.  
-directory<-""
+directory<-"/Users/namccrac/IBMG/Mosley Lab/TPP Analysis Project/Program Development"
 dir.create(paste(directory,"Curves",sep="/"))
 dir.create(paste(directory,"SigCurves",sep="/"))
 SourcePath = directory
@@ -35,18 +36,21 @@ OutputPath_SigCurves=paste(directory,"SigCurves",sep="/")
 OutputPath =directory
 
 #The temperatures in the TPP heat treatment gradient.  The Temperatures are user specified.
-Temperature<-c(35.0,45.3,50.1,55.2,60.7,74.9)
+Temperature<-c(25,35,39.3,50.1,55.2,60.7,74.9,90)
 
 #Correlation constant criteria used for determining whether a 4 parameter log fit is acceptable for inclusion of the protein in the analysis.  This constant is user specified.
 Rsq<-0.95
 
 #Number of standard deviations considered significant for overall analysis
 NumSD<-2
-```
 
+```
+	
+
+	
 
 ```{r}
-
+	
 #This chunk prepares data for log fitting.  This chunk normalizes the fold change of the lowest temperature, removes proteins without values in both conditions, and sums the remaining normalized values for each temperature. 
 NumberTemperatures<-as.numeric(NROW(Temperature))
 ConditionData <- as.data.frame(read_excel(file.path(paste(SourcePath,"Condition.xlsx",sep="/"))))
@@ -59,7 +63,7 @@ Data_Control_Norm<-Data_Control[,1:ncol(Data_Control)]/Data_Control[,1]
 Data_Condition_Norm<- Data_Condition[,1:ncol(Data_Condition)]/Data_Condition[,1]
 All_Control_Norm<-data.frame(Protein_Control,Data_Control_Norm)
 All_Condition_Norm<-data.frame(Protein_Condition,Data_Condition_Norm)
-
+	
 #Omits rows with N/A values and writes to file the proteins at this point
 All_Control_Norm_Omit<-na.omit(All_Control_Norm)
 All_Condition_Norm_Omit<-na.omit(All_Condition_Norm)
@@ -69,29 +73,30 @@ Data_Control_Norm_Omit<-((All_Control_Norm_Omit[2:(1+NumberTemperatures)]))
 Data_Condition_Norm_Omit<-(All_Condition_Norm_Omit[2:(1+NumberTemperatures)])
 write_xlsx(Data_Control_Norm_Omit,paste(OutputPath,"NormalizedControlResults.xlsx",sep="/"))
 write_xlsx(Data_Condition_Norm_Omit,paste(OutputPath,"NormalizedConditionResults.xlsx",sep="/"))
-
+	
 #Calculates the median fold change abundance from each temperature
 Data_Control_Norm_Omit_Median<-apply(Data_Control_Norm_Omit, 2, FUN=median)
 Data_Condition_Norm_Omit_Median<-apply(Data_Condition_Norm_Omit, 2, FUN=median)
-
+	
 ControlMedian<-Data_Control_Norm_Omit_Median[1:NumberTemperatures]
 ConditionMedian<-Data_Condition_Norm_Omit_Median[1:NumberTemperatures]
-
+	
 Proteins_Control_Norm_Omit<-All_Control_Norm_Omit[c(1)]
 Proteins_Condition_Norm_Omit<-All_Condition_Norm_Omit[c(1)]
-
 ```
+	
 
+	
 
 ```{r}
 #This chunk calculates the 4 parameter logistic curve for the summed normalized values at each temperature for each of the conditions.  It then calculates the correction factor for each condition based on the actual and predicted values (using the calculated curve).  The calculation is done on all proteins in each data data regardless of whether they are present in both data sets.
-
+	
 FPLFit_Correction<-function(Sum,Data_Norm_Omit,Condition){
-
+	
 TotalCellsPer<-as.numeric(NROW(Data_Norm_Omit)*NCOL(Data_Norm_Omit))
 TotalRowsPer<-as.numeric(NROW(Data_Norm_Omit))
 TotalColsPer<-as.numeric(NCOL(Data_Norm_Omit))
-  
+	  
 df <- data.frame(Temperature, Sum)
 CurveFit <- nls(Sum ~ I(c+((d-c)/(1+exp(-a*(Temperature-b))))), data = df, start=list(a=-1,b=mean(Temperature),c=min(Sum),d=max(Sum)), trace = F)
 CCurvea1<-summary(CurveFit)
@@ -100,154 +105,161 @@ CCurvea<-CCurvea2[1,1]
 CCurveb<-CCurvea2[2,1]
 CCurvec<-CCurvea2[3,1]
 CCurved<-CCurvea2[4,1] 
-
+	
 PredictedNormal <- CCurvec+ (CCurved-CCurvec)/(1+(exp(-CCurvea*(Temperature-CCurveb))))
 Correction<-t((100-((Sum-PredictedNormal)/(Sum)*100))/100)
-
+	
 i <- 1
 NormBothCorrect = matrix(NA, nrow=TotalRowsPer, ncol=TotalColsPer)
 repeat{
-  j<-1
-  repeat{
-  NormBothCorrect[i,j]<-Data_Norm_Omit[i,j]*Correction[,j]
-  j <- j+1
-  if (j > TotalColsPer){
-    break
-  }
-  }
-  i<-i+1
-  if (i > TotalRowsPer){
-    break
-  }
+	 j<-1
+	 repeat{
+	 NormBothCorrect[i,j]<-Data_Norm_Omit[i,j]*Correction[,j]
+	 j <- j+1
+	 if (j > TotalColsPer){
+	  break
+	  }
+	 }
+	 i<-i+1
+	 if (i > TotalRowsPer){
+	   break
+	 }
 }
 return(NormBothCorrect)
 }
-
+	
 ControlNormBothCorrect<-FPLFit_Correction(ControlMedian,Data_Control_Norm_Omit,"Control")
 MutNormBothCorrect<-FPLFit_Correction(ConditionMedian,Data_Condition_Norm_Omit,"Condition")
 ```
+	
 
+	
 
 ```{r}
-
+	
 #This chunk calculates the 4 parameter logistic variables for each of the proteins from both Control and Condition conditions.  This calculation is done only on proteins that are present in both data sets.
-
 
 Data_Norm_Omit<-Data_Control_Norm_Omit
 NormBothCorrect<-ControlNormBothCorrect
 Condition<-"Control"
-
-
+	
+	
 FPLFit<-function(Data_Norm_Omit,NormBothCorrect,Condition){
-
+	
 TotalCellsPer<-as.numeric(NROW(Data_Norm_Omit)*NCOL(Data_Norm_Omit))
 TotalRowsPer<-as.numeric(NROW(Data_Norm_Omit))
 TotalColsPer<-as.numeric(NCOL(Data_Norm_Omit))
-
+	
 n <- 1
-DataParameters = matrix(NA, nrow=TotalRowsPer, ncol=8)
-colnames(DataParameters) <- c(paste("a-",Condition),paste("Tm-",Condition),paste("c- ",Condition),paste("d-",Condition),paste("SE-",Condition),paste("R2-",Condition),paste("AIC- ",Condition),paste("BIC-",Condition))
+DataParameters = matrix(NA, nrow=TotalRowsPer, ncol=5)
+colnames(DataParameters) <- c(paste("a-",Condition),paste("Tm-",Condition),paste("c- ",Condition),paste("d-",Condition),paste("R2-",Condition))
 repeat{
-
+	
 NormBothCorrectVal<-NormBothCorrect[n,1:TotalColsPer]
-
-
+	
+	
 df <- data.frame(x=Temperature,y=NormBothCorrect[n,])
-minmelt <- function(data, param) {
-              with(data, sum(((param[3]/10+((param[4]-param[3]/10)/(1+exp(-param[1]*(x-param[2]*50)))))-y)^2))
-}
-
+minmelt <- function(data, param) {with(data, sum(((param[3]/10+((param[4]-param[3]/10)/(1+exp(-param[1]*(x-param[2]*50)))))-y)^2))
+	}
+	
 CurveFit <- optim(par = c(-1,1,1,1), fn = minmelt, data = df, method=c('L-BFGS-B'),lower=-2,upper=2)
-
+	
 CCurvea1<-CurveFit$par
 CCurvea<-CCurvea1[1]
 CCurveb<-CCurvea1[2]*50
 CCurvec<-CCurvea1[3]/10
 CCurved<-CCurvea1[4] 
-
+	
 DataParameters[n,1]<-CCurvea
 DataParameters[n,2]<-CCurveb
 DataParameters[n,3]<-CCurvec
 DataParameters[n,4]<-CCurved
-
+	
 z<-1
 ssTot<-0
 ssResid<-0
 repeat{
 ssTot <- ((NormBothCorrectVal[z]-mean(NormBothCorrectVal))^2)+ssTot
 ssResid <- ((NormBothCorrectVal[z]-(CCurvec+((CCurved-CCurvec)/(1+exp(-CCurvea*(Temperature[z]-CCurveb))))))^2)+ssResid
-z<-z+1
-if (z > NumberTemperatures){
-    break
- }
-}
-
-r2 <- 1 - (ssResid/ssTot)
-
-   
-DataParameters[n,6]<-r2
-
-
-n=n+1
- if (n > TotalRowsPer){
-    break
- }
-}
-return(DataParameters)
-}
-
+	z<-z+1
+	if (z > NumberTemperatures){
+	    break
+	 }
+	}
+	
+	r2 <- 1 - (ssResid/ssTot)
+	
+	   
+DataParameters[n,5]<-r2
+	
+	
+	n=n+1
+	 if (n > TotalRowsPer){
+	    break
+	 }
+	}
+	return(DataParameters)
+	}
+	
 DataParametersControl<-FPLFit(Data_Control_Norm_Omit,ControlNormBothCorrect,"Control")
-DataParametersCondition<-FPLFit(Data_Condition_Norm_Omit,MutNormBothCorrect,"Mut")
-
+DataParametersCondition<-FPLFit(Data_Condition_Norm_Omit,MutNormBothCorrect,"Condition")
+	
 ```
+	
 
+	
 
 ```{r}
-
-#This chunk isolates proteins that have a Rsquare of a certain value 
-
+	
+#This chunk isolates proteins that have a Rsquare of a certain value
+	
 DataParametersControlResults <- data.frame(Proteins_Control_Norm_Omit, DataParametersControl, ControlNormBothCorrect)
 DataParametersConditionResults <- data.frame(Proteins_Condition_Norm_Omit, DataParametersCondition, MutNormBothCorrect)
 DataParametersResultsAll <-merge(DataParametersControlResults,DataParametersConditionResults,by="Accession")
-
-significance_condition <- DataParametersResultsAll[c(7)] >= Rsq & DataParametersResultsAll[c(NumberTemperatures+15)] >= Rsq
-
+	
+significance_condition <- DataParametersResultsAll[c(6)] >= Rsq & DataParametersResultsAll[c(NumberTemperatures+11)] >= Rsq
+	
 SignificantAll<- DataParametersResultsAll[significance_condition, c(1:NCOL(DataParametersResultsAll))] 
 ProteinsFilter<- DataParametersResultsAll[significance_condition, c(1)] 
-
-DeltaTmControlMinusMut<-SignificantAll[,3]-SignificantAll[,11+NumberTemperatures]
+	
+DeltaTmControlMinusMut<-SignificantAll[,3]-SignificantAll[,8+NumberTemperatures]
 DeltaTmDataSet<-data.table(SignificantAll,DeltaTmControlMinusMut)
 DeltaTmSort<-DeltaTmDataSet[order(-DeltaTmControlMinusMut)]
 Observation <- 1:NROW(ProteinsFilter) 
 DataParametersAnalysisResults <- data.frame(Observation,DeltaTmSort)
-
+	
 Observation <- as.numeric(DataParametersAnalysisResults[,1])
 DeltTm <- DataParametersAnalysisResults[,NCOL(DataParametersAnalysisResults)]
 TmData <- data.table(Observation, DeltTm)
-
+	
 SDH<-mean(DeltTm)+NumSD*sd(DeltTm)
 SDL<-mean(DeltTm)-NumSD*sd(DeltTm)
-
+	
 significance_condition <- DataParametersAnalysisResults[c(NCOL(DataParametersAnalysisResults))] >= SDH | DataParametersAnalysisResults[c(NCOL(DataParametersAnalysisResults))] <= SDL
 SignificantAll_SD<- DataParametersAnalysisResults[significance_condition, c(1:NCOL(DataParametersAnalysisResults))] 
 ```
+	
 
+	
 
 ```{r}
-#This chunk creates the output files from the analysis including pdf files each with a prefix corresponding to the accession number or protein name in the original source file.
-
+	#This chunk creates the output files from the analysis including pdf files each with a prefix corresponding to the accession number or protein name in the original source file.
+	
 write_xlsx(DataParametersResultsAll,paste(OutputPath,"Results.xlsx",sep="/"))
 write_xlsx(SignificantAll_SD,paste(OutputPath,"SignificantResults.xlsx",sep="/"))
-
+	
 n <- 1
 repeat{
 pdf(paste(OutputPath_Curves,paste(DataParametersAnalysisResults[n,2],"pdf",sep="."),sep="/"))
-plot(x = Temperature, y = DataParametersAnalysisResults[n,c(11:(NumberTemperatures+10))],pch = 2, frame = TRUE,xlab = "Temperature (C)", ylab = "Normalized Abundance",col = "blue",axes=FALSE,ylim=c(0,1.5),xlim=c(20,100),main=DataParametersAnalysisResults[n,2])
+plot(x = Temperature, y = DataParametersAnalysisResults[n,c(8:(NumberTemperatures+7))],pch = 2, frame = TRUE,xlab = "Temperature (C)", ylab = "Normalized Abundance",col = "blue",axes=FALSE,ylim=c(0,1.5),xlim=c(20,100),main=DataParametersAnalysisResults[n,2])
 Temperaturevals<-seq(min(Temperature), max(Temperature), by=1)
-lines(Temperaturevals ,(DataParametersAnalysisResults[n,c(5)]+((DataParametersAnalysisResults[n,c(6)]-DataParametersAnalysisResults[n,c(5)])/(1+exp(-DataParametersAnalysisResults[n,c(3)]*(Temperaturevals-DataParametersAnalysisResults[n,c(4)]))))),col="blue")
-points(Temperature, DataParametersAnalysisResults[n,c((19+NumberTemperatures):(18+(2*NumberTemperatures)))], col="red", pch=8,lty=1)
-lines(Temperaturevals<-seq(min(Temperature), max(Temperature), by=1),(DataParametersAnalysisResults[n,c(NumberTemperatures+13)]+((DataParametersAnalysisResults[n,c(NumberTemperatures+14)]-DataParametersAnalysisResults[n,c(NumberTemperatures+13)])/(1+exp(-DataParametersAnalysisResults[n,c(NumberTemperatures+11)]*(Temperaturevals-DataParametersAnalysisResults[n,c(NumberTemperatures+12)]))))),lty=2,col="red")
 
+lines(Temperaturevals ,(DataParametersAnalysisResults[n,c(5)]+((DataParametersAnalysisResults[n,c(6)]-DataParametersAnalysisResults[n,c(5)])/(1+exp(-DataParametersAnalysisResults[n,c(3)]*(Temperaturevals-DataParametersAnalysisResults[n,c(4)]))))),col="blue")
+
+points(Temperature, DataParametersAnalysisResults[n,c((13+NumberTemperatures):(12+(2*NumberTemperatures)))], col="red", pch=8,lty=1)
+
+lines(Temperaturevals<-seq(min(Temperature), max(Temperature), by=1),(DataParametersAnalysisResults[n,c(NumberTemperatures+10)]+((DataParametersAnalysisResults[n,c(NumberTemperatures+11)]-DataParametersAnalysisResults[n,c(NumberTemperatures+10)])/(1+exp(-DataParametersAnalysisResults[n,c(NumberTemperatures+8)]*(Temperaturevals-DataParametersAnalysisResults[n,c(NumberTemperatures+9)]))))),lty=2,col="red")
+	
 axis(side=1, at=seq(20,100,by=5))
 axis(side=2, at=seq(0,1.5, by=.1))
 legend(60,1.3,legend=c("Control","Condition"), col=c("blue","red"),pch=c(2,8),lty=c(1,2))
@@ -257,28 +269,31 @@ plottable[1,1]<-"Control Tm"
 plottable[2,1]<-"Condition Tm"
 plottable[3,1]<-"Delta Tm"
 plottable[1,2]<-round(DataParametersAnalysisResults[n,c(4)],2)
-plottable[2,2]<-round(DataParametersAnalysisResults[n,c(NumberTemperatures+12)],2)
-plottable[3,2]<-round((DataParametersAnalysisResults[n,c(4)])-(DataParametersAnalysisResults[n,c(NumberTemperatures+12)]),2)
+plottable[2,2]<-round(DataParametersAnalysisResults[n,c(NumberTemperatures+9)],2)
+plottable[3,2]<-round((DataParametersAnalysisResults[n,c(4)])-(DataParametersAnalysisResults[n,c(NumberTemperatures+9)]),2)
 addtable2plot(60,0.8,plottable,hlines=TRUE,vlines=TRUE,bty="o",bg="gray")
-
-
+	
+	
 dev.off() 
 n=n+1
- if (n > NROW(DataParametersAnalysisResults)){
+	if (n > NROW(DataParametersAnalysisResults)){
     break
- }
+	}
 }
-
+	
 n <- 1
 repeat{
 pdf(paste(OutputPath_SigCurves,paste(SignificantAll_SD[n,2],"pdf",sep="."),sep="/"))
 plot(x = Temperature, y = SignificantAll_SD[n,c(11:(NumberTemperatures+10))],pch = 2, frame = TRUE,xlab = "Temperature (C)", ylab = "Normalized Abundance",col = "blue",axes=FALSE,ylim=c(0,1.5),xlim=c(20,100),main=SignificantAll_SD[n,2])
 Temperaturevals<-seq(min(Temperature), max(Temperature), by=1)
+
 lines(Temperaturevals ,(SignificantAll_SD[n,c(5)]+((SignificantAll_SD[n,c(6)]-SignificantAll_SD[n,c(5)])/(1+exp(-SignificantAll_SD[n,c(3)]*(Temperaturevals-SignificantAll_SD[n,c(4)]))))),col="blue")
-points(Temperature, SignificantAll_SD[n,c((19+NumberTemperatures):(18+(2*NumberTemperatures)))], col="red", pch=8,lty=1)
-lines(Temperaturevals<-seq(min(Temperature), max(Temperature), by=1),(SignificantAll_SD[n,c(NumberTemperatures+13)]+((SignificantAll_SD[n,c(NumberTemperatures+14)]-SignificantAll_SD[n,c(NumberTemperatures+13)])/(1+exp(-SignificantAll_SD[n,c(NumberTemperatures+11)]*(Temperaturevals-SignificantAll_SD[n,c(NumberTemperatures+12)]))))),lty=2,col="red")
+	
+points(Temperature, SignificantAll_SD[n,c((13+NumberTemperatures):(12+(2*NumberTemperatures)))], col="red", pch=8,lty=1)
 
-
+lines(Temperaturevals<-seq(min(Temperature), max(Temperature), by=1),(SignificantAll_SD[n,c(NumberTemperatures+10)]+((SignificantAll_SD[n,c(NumberTemperatures+11)]-SignificantAll_SD[n,c(NumberTemperatures+10)])/(1+exp(-SignificantAll_SD[n,c(NumberTemperatures+8)]*(Temperaturevals-SignificantAll_SD[n,c(NumberTemperatures+9)]))))),lty=2,col="red")
+	
+	
 axis(side=1, at=seq(20,100,by=5))
 axis(side=2, at=seq(0,1.5, by=.1))
 legend(65,1.3,legend=c("Control","Condition"), col=c("blue","red"),pch=c(2,8),lty=c(1,2))
@@ -288,39 +303,37 @@ plottable[1,1]<-"Control Tm"
 plottable[2,1]<-"Condition Tm"
 plottable[3,1]<-"Delta Tm"
 plottable[1,2]<-round(SignificantAll_SD[n,c(4)],2)
-plottable[2,2]<-round(SignificantAll_SD[n,c(NumberTemperatures+12)],2)
+plottable[2,2]<-round(SignificantAll_SD[n,c(NumberTemperatures+9)],2)
 plottable[3,2]<-round((SignificantAll_SD[n,c(4)])-(SignificantAll_SD[n,c(NumberTemperatures+12)]),2)
 addtable2plot(65,0.8,plottable,hlines=TRUE,vlines=TRUE,bty="o",bg="gray")
-
+	
 dev.off() 
 n=n+1
- if (n > NROW(SignificantAll_SD)){
-    break
- }
+	if (n > NROW(SignificantAll_SD)){
+	   break
+	}
 }
-
-
+	
+	
 WaterfallPlot <- ggplot(DataParametersAnalysisResults[c(1,NCOL(DataParametersAnalysisResults))], 
-                               aes(x = Observation, 
-                                   y = DeltTm)) +
-                        geom_point(size=3) + 
-                        labs(x = "Rank of Melting Point Difference Control and Condition",
-                             y = "Delta Tm (C)") +
-                        scale_color_manual(values = c("Small" = "blue", "Large" = "red",  "normal" = NA)) +
-                        ylim(c(-25,25)) + 
-                        theme_minimal() + 
-                        theme(legend.position="none") +theme_set(theme_gray(base_size = 15))+
-                        geom_hline(yintercept = SDH, linetype = "dashed", color = "orange") + 
-                        geom_hline(yintercept=SDL, linetype = "dashed", color = "orange")
-
-ggplotly(WaterfallPlot)
-
-ggsave(filename = "WaterfallPlot.pdf",
-       path = OutputPath_Curves,
-       plot = WaterfallPlot, 
-       device = "pdf",
-       width = 10,
-       height = 10,
-       units = "in",
-       useDingbats = FALSE)
+	                       aes(x = Observation,y = DeltTm)) +
+	                        geom_point(size=3) + 
+	                        labs(x = "Rank of Melting Point Difference Control and Condition",
+	                             y = "Delta Tm (C)") +
+	                        ylim(c(-25,25)) + 
+	                        theme_minimal() + 
+	                        theme(legend.position="none") +theme_set(theme_gray(base_size = 15))+
+	                        geom_hline(yintercept = SDH, linetype = "dashed", color = "orange") + 
+	                        geom_hline(yintercept=SDL, linetype = "dashed", color = "orange")
+	
+	ggplotly(WaterfallPlot)
+	
+	ggsave(filename = "WaterfallPlot.pdf",
+	       path = OutputPath_Curves,
+	       plot = WaterfallPlot, 
+	       device = "pdf",
+	       width = 10,
+	       height = 10,
+	       units = "in",
+	       useDingbats = FALSE)
 ```
